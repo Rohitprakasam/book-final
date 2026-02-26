@@ -1,0 +1,76 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Node / JS
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# Vite build folders and caches
+.vite/
+dist/
+build/
+out/
+
+# Output and Data dirs
+data/raw_draft/*
+data/output/*
+backend/data/raw_draft/*
+backend/data/output/*
+!backend/data/output/.gitkeep
+!backend/data/raw_draft/.gitkeep
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# TeX / Typst Auxiliary files
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.synctex.gz
+*.pdf
+backend/data/output/*.pdf
+backend/data/output/*.tex
+backend/data/output/*.typ

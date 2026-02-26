@@ -1,0 +1,12 @@
+langgraph>=0.2.0
+litellm>=1.30.0
+python-dotenv>=1.0.0
+PyMuPDF>=1.24.0
+google-genai>=1.0.0
+Pillow>=10.0.0
+
+# BookForge 7.0 — Backend Server
+fastapi>=0.111.0
+uvicorn>=0.30.0
+sse-starlette>=1.8.0
+python-multipart>=0.0.9

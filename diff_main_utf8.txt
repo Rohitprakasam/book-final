@@ -1,0 +1,745 @@
+diff --git "a/C:\\Users\\rohit\\OneDrive\\Desktop\\Book_Creator\\bookforge_local\\main.py" "b/backend\\main.py"
+index a74a6ab..0a6024c 100644
+--- "a/C:\\Users\\rohit\\OneDrive\\Desktop\\Book_Creator\\bookforge_local\\main.py"
++++ "b/backend\\main.py"
+@@ -1,5 +1,5 @@
+ """
+-BookEducate 5.0 ÔÇö Master Orchestrator
++BookUdecate V1.0 ÔÇö Master Orchestrator
+ =====================================
+ Chains all four phases into a single end-to-end pipeline:
+ 
+@@ -79,6 +79,29 @@ def load_state() -> dict:
+     return {"completed_phase": 0}
+ 
+ 
++def clear_directory(directory: Path, keep_file: Path = None) -> None:
++    """Helper to wipe data folders without deleting the folder itself."""
++    if not directory.exists():
++        return
++    import shutil
++
++    # Resolve keep_file to absolute path for reliable comparison
++    keep_path = keep_file.resolve() if keep_file else None
++
++    for item in directory.iterdir():
++        try:
++            # Skip the file we want to keep
++            if keep_path and item.resolve() == keep_path:
++                continue
++
++            if item.is_file():
++                item.unlink()
++            elif item.is_dir():
++                shutil.rmtree(item)
++        except Exception as e:
++            print(f"   ÔÜá´©Å Could not delete {item.name}: {e}")
++
++
+ # ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+ # PIPELINE
+ # ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+@@ -87,14 +110,14 @@ def main(
+     style_path: str = None,
+     start_phase: int = 1,
+ ) -> None:
+-    """Run the full BookEducate 5.0 pipeline."""
++    """Run the full BookUdecate V1.0 pipeline."""
+     start_time = time.time()
+     total = 0
+     style_config = {}
+ 
+     print()
+     print("ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù")
+-    print("Ôòæ          ­ƒôû  BOOKEDUCATE 5.0 ÔÇö UNIFIED ENGINE           Ôòæ")
++    print("Ôòæ          ­ƒôû  BookUdecate V1.0 ÔÇö UNIFIED ENGINE           Ôòæ")
+     print("Ôòæ       Document Deconstruction & Reassembly Engine       Ôòæ")
+     print("ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ")
+     print()
+@@ -102,9 +125,35 @@ def main(
+     print()
+ 
+     if start_phase == 1:
+-        print("   ­ƒº╣ Starting fresh run. Purging previous book data to prevent cross-contamination...")
+-        from clear_data import clear_directory
+-        clear_directory(OUTPUT_DIR)
++        print(
++            "   ­ƒº╣ Starting fresh run. Purging previous book data to prevent cross-contamination..."
++        )
++
++        # Pass pdf_path to clear_directory so we don't delete our own input!
++        input_file_path = Path(pdf_path) if pdf_path else None
++
++        # Also MUST preserve jobs.json (the server's database)
++        to_preserve = [input_file_path, OUTPUT_DIR / "jobs.json"]
++
++        def clear_with_exceptions(dir_path, exceptions):
++            if not dir_path.exists():
++                return
++            import shutil
++
++            abs_exceptions = [Path(e).resolve() for e in exceptions if e]
++            for item in dir_path.iterdir():
++                if item.resolve() in abs_exceptions:
++                    continue
++                try:
++                    if item.is_file():
++                        item.unlink()
++                    elif item.is_dir():
++                        shutil.rmtree(item)
++                except Exception as e:
++                    print(f"   ÔÜá´©Å Could not delete {item.name}: {e}")
++
++        clear_with_exceptions(OUTPUT_DIR, to_preserve)
++
+         clear_directory(BASE_DIR / "data" / "chroma_db")
+         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+         print()
+@@ -132,6 +181,7 @@ def main(
+         if style_path:
+             print(f"   Style Ref: {style_path}")
+             from src.style_manager import extract_style
++
+             style_config = extract_style(style_path)
+         else:
+             print("   Style Ref: None (using defaults)")
+@@ -160,6 +210,7 @@ def main(
+         print("­ƒÄô  PHASE 1.5 ÔÇö THE CURRICULUM PLANNER")
+         print("Ôöü" * 58)
+         from src.syllabus_generator import generate_syllabus
++
+         generate_syllabus(manuscript_file)
+         print()
+ 
+@@ -187,17 +238,17 @@ def main(
+         # Test LLM connectivity before processing chunks
+         model = _get_model()
+         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+-        
++
+         print(f"   ­ƒöì Testing LLM connection...")
+         print(f"      Model: {model}")
+         print(f"      API Key: {'SET' if api_key else 'NOT SET'}")
+-        
++
+         if model.startswith("gemini/") and not api_key:
+             print("   ÔØî ERROR: Gemini model requires GOOGLE_API_KEY or GEMINI_API_KEY")
+             print("   ­ƒÆí Set GOOGLE_API_KEY in your .env file")
+             print("   ÔÜá´©Å  Aborting Phase 2 - cannot proceed without API key")
+             return
+-        
++
+         if not _test_llm_connection():
+             print("   ÔÜá´©Å  LLM connection test failed. Chunks may fail.")
+             print("   ­ƒÆí Check your DEFAULT_MODEL env var and API keys.")
+@@ -214,30 +265,34 @@ def main(
+ 
+         CHUNKS_DIR = OUTPUT_DIR / "expanded_chunks"
+         CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+-        
++
+         async def process_chunk(sem, i, chunk):
+             chunk_file = CHUNKS_DIR / f"chunk_{i:04d}.md"
+             if chunk_file.exists():
+                 print(f"   ­ƒöä Chunk {i + 1}/{total} already exists. Skipping...")
+                 return chunk_file.read_text(encoding="utf-8")
+-                
++
+             async with sem:
+-                print(f"\n   ÔöÇÔöÇ [ASYNC] Processing Chunk {i + 1}/{total} ({len(chunk):,} chars) ÔöÇÔöÇ")
+-                
++                print(
++                    f"\n   ÔöÇÔöÇ [ASYNC] Processing Chunk {i + 1}/{total} ({len(chunk):,} chars) ÔöÇÔöÇ"
++                )
++
+                 # Validate chunk before processing
+                 if not chunk or len(chunk.strip()) == 0:
+                     print(f"   ÔÜá´©Å  Chunk {i + 1} is empty, skipping...")
+                     expanded = chunk
+                 else:
+                     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+-                    
++
+                     target_pages = int(os.getenv("TARGET_PAGES", "600"))
+                     chars_per_page = 3000
+-                    target_chars = max(int((target_pages * chars_per_page) / total), len(chunk) * 4)
+-                    
++                    target_chars = max(
++                        int((target_pages * chars_per_page) / total), len(chunk) * 4
++                    )
++
+                     # Clamp to ~22,000 characters to safely stay under the LLM's 8,192 token max output threshold
+                     target_chars = min(target_chars, 22000)
+-                    
++
+                     # Ensure initial state has all required keys
+                     initial_state = {
+                         "current_chunk": chunk,
+@@ -250,40 +305,92 @@ def main(
+ 
+                     try:
+                         result = await graph.ainvoke(initial_state, config)
+-                        
++
+                         # Safely extract expanded chunk
+-                        expanded = result.get("expanded_chunk") or result.get("current_chunk") or chunk
+-                        
++                        expanded = (
++                            result.get("expanded_chunk")
++                            or result.get("current_chunk")
++                            or chunk
++                        )
++
+                         # Validate result
+                         if not expanded or len(expanded.strip()) == 0:
+-                            print(f"   ÔÜá´©Å  Chunk {i + 1} produced empty expansion, using original")
++                            print(
++                                f"   ÔÜá´©Å  Chunk {i + 1} produced empty expansion, using original"
++                            )
+                             expanded = chunk
+-                            with open(OUTPUT_DIR / "dlq_failed_chunks.jsonl", "a", encoding="utf-8") as f:
+-                                f.write(json.dumps({"chunk_index": i + 1, "reason": "empty_expansion", "content": chunk}) + "\n")
++                            with open(
++                                OUTPUT_DIR / "dlq_failed_chunks.jsonl",
++                                "a",
++                                encoding="utf-8",
++                            ) as f:
++                                f.write(
++                                    json.dumps(
++                                        {
++                                            "chunk_index": i + 1,
++                                            "reason": "empty_expansion",
++                                            "content": chunk,
++                                        }
++                                    )
++                                    + "\n"
++                                )
+                         elif expanded == chunk:
+-                            print(f"   ÔÜá´©Å  Chunk {i + 1} returned unchanged (may indicate failure)")
+-                            with open(OUTPUT_DIR / "dlq_failed_chunks.jsonl", "a", encoding="utf-8") as f:
+-                                f.write(json.dumps({"chunk_index": i + 1, "reason": "unchanged_expansion", "content": chunk}) + "\n")
++                            print(
++                                f"   ÔÜá´©Å  Chunk {i + 1} returned unchanged (may indicate failure)"
++                            )
++                            with open(
++                                OUTPUT_DIR / "dlq_failed_chunks.jsonl",
++                                "a",
++                                encoding="utf-8",
++                            ) as f:
++                                f.write(
++                                    json.dumps(
++                                        {
++                                            "chunk_index": i + 1,
++                                            "reason": "unchanged_expansion",
++                                            "content": chunk,
++                                        }
++                                    )
++                                    + "\n"
++                                )
+                         else:
+-                            print(f"   Ô£à Chunk {i + 1} expanded ÔåÆ {len(expanded):,} chars")
++                            print(
++                                f"   Ô£à Chunk {i + 1} expanded ÔåÆ {len(expanded):,} chars"
++                            )
+ 
+                     except KeyboardInterrupt:
+                         print(f"\n   ÔÜá´©Å  Interrupted by user at chunk {i + 1}")
+                         raise
+                     except Exception as e:
+                         import traceback
++
+                         error_type = type(e).__name__
+                         error_msg = str(e)
+-                        print(f"   ÔÜá´©Å  Chunk {i + 1} failed ({error_type}): {error_msg}")
++                        print(
++                            f"   ÔÜá´©Å  Chunk {i + 1} failed ({error_type}): {error_msg}"
++                        )
+                         # Print full traceback for debugging
+                         tb_lines = traceback.format_exc().splitlines()
+                         for line in tb_lines[:10]:  # Show more lines
+                             if line.strip() and not line.startswith("File"):
+                                 print(f"      {line}")
+                         expanded = chunk
+-                        with open(OUTPUT_DIR / "dlq_failed_chunks.jsonl", "a", encoding="utf-8") as f:
+-                            f.write(json.dumps({"chunk_index": i + 1, "reason": error_msg, "content": chunk}) + "\n")
+-                            
++                        with open(
++                            OUTPUT_DIR / "dlq_failed_chunks.jsonl",
++                            "a",
++                            encoding="utf-8",
++                        ) as f:
++                            f.write(
++                                json.dumps(
++                                    {
++                                        "chunk_index": i + 1,
++                                        "reason": error_msg,
++                                        "content": chunk,
++                                    }
++                                )
++                                + "\n"
++                            )
++
+                 # Safely write to granular checkpoint
+                 chunk_file.write_text(expanded, encoding="utf-8")
+                 return expanded
+@@ -292,21 +399,21 @@ def main(
+             # Throttle parallel connections based on model rate limits
+             model = os.getenv("DEFAULT_MODEL", "groq/llama3-8b-8192")
+             if "flash" in model.lower():
+-                concurrency = 30 # Massive volume
++                concurrency = 30  # Massive volume
+             elif "pro" in model.lower():
+-                concurrency = 10 # Premium, strict limit
++                concurrency = 10  # Premium, strict limit
+             else:
+-                concurrency = 15 # Default safe limit
+-                
++                concurrency = 15  # Default safe limit
++
+             sem = asyncio.Semaphore(concurrency)
+             print(f"   ­ƒÜÇ Starting Async Phase 2 Swarm (Concurrency: {concurrency})...")
+-            
++
+             tasks = [process_chunk(sem, i, chunk) for i, chunk in enumerate(chunks)]
+             return await asyncio.gather(*tasks)
+ 
+         # Run the asynchronous loop array
+         expanded_chunks_list = asyncio.run(run_phase_2())
+-        
++
+         # Merge all cleanly downloaded chunks into the monolithic file
+         full_expanded = "\n\n---\n\n".join(expanded_chunks_list).strip()
+         EXPANDED_PATH.write_text(full_expanded, encoding="utf-8")
+@@ -349,9 +456,9 @@ def main(
+     # PHASE 4: THE TYPESETTING ENGINE
+     # ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+     if start_phase <= 4:
+-      print("Ôöü" * 58)
+-      print("­ƒû¿´©Å  PHASE 4 ÔÇö THE TYPESETTING ENGINE")
+-      print("Ôöü" * 58)
++        print("Ôöü" * 58)
++        print("­ƒû¿´©Å  PHASE 4 ÔÇö THE TYPESETTING ENGINE")
++        print("Ôöü" * 58)
+ 
+     # Recover metadata if jumping to Phase 4
+     if start_phase > 3:
+@@ -373,6 +480,7 @@ def main(
+ 
+     # 2. Split using the same chunker as Phase 2 for consistency (Fix #13)
+     from src.chunker import chunk_manuscript as _chunker
++
+     # Write temp file for chunker since it reads files
+     temp_chunk_file = OUTPUT_DIR / "_phase4_temp.txt"
+     temp_chunk_file.write_text(text, encoding="utf-8")
+@@ -386,7 +494,7 @@ def main(
+     # 3. Structure ÔÇö with fault tolerance (skip bad sections)
+     print(f"­ƒñû AI Structuring ({len(chunks)} sections)...")
+     print(f"   Using model: {os.getenv('DEFAULT_MODEL', 'groq/llama3-8b-8192')}")
+-    
++
+     # Checkpoint support: resume from partial JSON if it exists
+     json_path = OUTPUT_DIR / "book_structure.json"
+     start_section = 0
+@@ -397,13 +505,15 @@ def main(
+             if existing_sections:
+                 start_section = len(existing_sections)
+                 full_structure["sections"] = existing_sections
+-                print(f"   ­ƒöä Found existing structure with {start_section} sections, resuming from section {start_section + 1}...")
++                print(
++                    f"   ­ƒöä Found existing structure with {start_section} sections, resuming from section {start_section + 1}..."
++                )
+         except Exception as e:
+             print(f"   ÔÜá´©Å Could not load existing structure: {e}, starting fresh")
+-    
++
+     failed_sections = 0
+     rate_limit_delays = 0
+-    
++
+     # A1: ASYNC PHASE 4 ÔÇö Parallel structurer using ThreadPoolExecutor
+     # Drops Phase 4 from ~3 hours (sequential) to ~12 minutes (20 parallel workers)
+     import concurrent.futures
+@@ -423,7 +533,10 @@ def main(
+                 error_msg = data["error"]
+                 if "rate limit" not in error_msg.lower() and "429" not in error_msg:
+                     raise Exception(f"Structurer Error: {error_msg}")
+-                return i, None  # Rate-limit error: skip with no fallback (will be retried next run)
++                return (
++                    i,
++                    None,
++                )  # Rate-limit error: skip with no fallback (will be retried next run)
+             if isinstance(data, list):
+                 return i, {"type": "chapter", "sections": data}
+             elif isinstance(data, dict) and "error" not in data:
+@@ -432,11 +545,17 @@ def main(
+                 raise Exception(f"Unexpected structurer return type: {type(data)}")
+         except Exception as e:
+             fallback_text = chunk[:2000] if len(chunk) > 2000 else chunk
+-            return i, {"type": "chapter", "sections": [{"type": "paragraph", "text": fallback_text}], "_failed": str(e)[:100]}
++            return i, {
++                "type": "chapter",
++                "sections": [{"type": "paragraph", "text": fallback_text}],
++                "_failed": str(e)[:100],
++            }
+ 
+     results_map = {}
+     with concurrent.futures.ThreadPoolExecutor(max_workers=CONCURRENCY) as executor:
+-        futures = {executor.submit(_process_chunk, arg): arg[0] for arg in remaining_chunks}
++        futures = {
++            executor.submit(_process_chunk, arg): arg[0] for arg in remaining_chunks
++        }
+         completed = 0
+         for future in concurrent.futures.as_completed(futures):
+             i, result = future.result()
+@@ -444,23 +563,35 @@ def main(
+                 results_map[i] = result
+             completed += 1
+             if completed % 50 == 0 or completed == len(remaining_chunks):
+-                print(f"   Processing section {start_section + completed}/{len(chunks)}...")
++                print(
++                    f"   Processing section {start_section + completed}/{len(chunks)}..."
++                )
+                 with checkpoint_lock:
+                     # Save partial checkpoint in order
+                     ordered = [results_map[k] for k in sorted(results_map.keys())]
+                     full_structure["sections"] = existing_sections + ordered
+-                    json_path.write_text(json.dumps(full_structure, indent=2), encoding="utf-8")
+-                    print(f"   ­ƒÆ¥ Checkpoint saved ({start_section + completed}/{len(chunks)} sections processed)")
++                    json_path.write_text(
++                        json.dumps(full_structure, indent=2), encoding="utf-8"
++                    )
++                    print(
++                        f"   ­ƒÆ¥ Checkpoint saved ({start_section + completed}/{len(chunks)} sections processed)"
++                    )
+ 
+     # Merge ordered results into full_structure
+     ordered_results = [results_map[k] for k in sorted(results_map.keys())]
+-    full_structure["sections"] = (existing_sections if start_section > 0 else []) + ordered_results
++    full_structure["sections"] = (
++        existing_sections if start_section > 0 else []
++    ) + ordered_results
+     failed_sections = sum(1 for r in ordered_results if r.get("_failed"))
+ 
+     if failed_sections:
+-        print(f"\n   ÔÜá´©Å  {failed_sections}/{len(chunks)} sections failed and used fallback text")
++        print(
++            f"\n   ÔÜá´©Å  {failed_sections}/{len(chunks)} sections failed and used fallback text"
++        )
+         if failed_sections > len(chunks) * 0.5:
+-            print(f"   ÔÜá´©Å  WARNING: >50% failure rate! Check API key, rate limits, or model availability")
++            print(
++                f"   ÔÜá´©Å  WARNING: >50% failure rate! Check API key, rate limits, or model availability"
++            )
+     else:
+         print(f"\n   Ô£à All {len(chunks)} sections structured successfully")
+ 
+@@ -477,10 +608,12 @@ def main(
+ 
+     # 3.6 Resolve Image Tags & Generate Diagrams (PHASE 3 Integration)
+     from src.resolver import resolve_art_tags, resolve_original_assets
++
+     # B1: MAX_NEW_DIAGRAMS ÔÇö Cap diagram generation to prevent 18-hour runs
+     MAX_NEW_DIAGRAMS = int(os.getenv("MAX_NEW_DIAGRAMS", "40"))
+     _diagram_count = [0]  # mutable counter accessible inside closure
+     print(f"­ƒÄ¿ Resolving AI Diagrams (limit: {MAX_NEW_DIAGRAMS} new diagrams)...")
++
+     def process_node(node):
+         if isinstance(node, dict):
+             if "text" in node and isinstance(node["text"], str):
+@@ -496,7 +629,10 @@ def main(
+                     if _diagram_count[0] >= MAX_NEW_DIAGRAMS:
+                         # Silent strip: remove the tag, no broken LaTeX include
+                         import re as _re
+-                        node["text"] = _re.sub(r'\[NEW_DIAGRAM:[^\]]*\]', '', original).strip()
++
++                        node["text"] = _re.sub(
++                            r"\[NEW_DIAGRAM:[^\]]*\]", "", original
++                        ).strip()
+                     else:
+                         new_text = resolve_art_tags(original, style_config)
+                         if new_text != original:
+@@ -514,28 +650,30 @@ def main(
+     # 4. Save JSON structure (json_path already declared above at checkpoint section)
+     json_path.write_text(json.dumps(full_structure, indent=2), encoding="utf-8")
+     print(f"­ƒôä JSON saved: {json_path}")
+-    
++
+     # QA CHECK: Validation Agent
+     try:
+         from src.checker import run_qa_check
++
+         run_qa_check(str(json_path), str(OUTPUT_DIR))
+     except Exception as e:
+         print(f"ÔÜá´©Å QA Checker failed to execute: {e}")
+-    # ÔöÇÔöÇ BookForge 8.0: Quality post-processing (JSON Level) ÔöÇÔöÇ
++    # ÔöÇÔöÇ BookUdecate 8.0: Quality post-processing (JSON Level) ÔöÇÔöÇ
+     from src.post_processor import (
+-        merge_micro_chapters, 
+-        deduplicate_paragraphs, 
++        merge_micro_chapters,
++        deduplicate_paragraphs,
+         strip_syllabus_restarts,
+         strip_empty_chapters,
+-        strip_heading_only_chapters
++        strip_heading_only_chapters,
+     )
++
+     chapters = full_structure["sections"]
+     print(f"   ­ƒôè Original chapter count: {len(chapters)}")
+-    
++
+     # Strip empty/heading-only chapters BEFORE merging/rendering
+     chapters = strip_empty_chapters(chapters)
+     chapters = strip_heading_only_chapters(chapters)
+-    
++
+     # Merge small chapters
+     chapters = merge_micro_chapters(chapters, min_chars=3000, max_chapters=60)
+     print(f"   ­ƒôè Final chapter count: {len(chapters)}")
+@@ -560,35 +698,30 @@ def main(
+     # Clean Pandoc conditionals from template (Fix #14)
+     # Remove $if(...)$...$endif$ blocks
+     template_content = re.sub(
+-        r'\$if\(.*?\)\$.*?\$endif\$',
+-        '',
+-        template_content,
+-        flags=re.DOTALL
++        r"\$if\(.*?\)\$.*?\$endif\$", "", template_content, flags=re.DOTALL
+     )
+     # Remove $for(...)$...$endfor$ blocks
+     template_content = re.sub(
+-        r'\$for\(.*?\)\$.*?\$endfor\$',
+-        '',
+-        template_content,
+-        flags=re.DOTALL
++        r"\$for\(.*?\)\$.*?\$endfor\$", "", template_content, flags=re.DOTALL
+     )
+ 
+     latex_body = "\n".join(latex_parts)
+ 
+-    # ÔöÇÔöÇ BookForge 8.0: Full post-processing pipeline ÔöÇÔöÇ
+-    print("­ƒöº Running BookForge 8.0 quality post-processors...")
++    # ÔöÇÔöÇ BookUdecate 8.0: Full post-processing pipeline ÔöÇÔöÇ
++    print("­ƒöº Running BookUdecate 8.0 quality post-processors...")
+ 
+     # B5: Strip 90% of \index{} tags ÔÇö saves ~10 min per xelatex pass
+     from src.renderer_latex import (
+-        prune_index_tags, 
++        prune_index_tags,
+         sanitize_latex_commands,
+-        strip_leaked_scaffolding, 
++        strip_leaked_scaffolding,
+         normalize_scientific_notation,
+-        strip_empty_tables, 
++        strip_empty_tables,
+         sanitize_for_zero_errors,
+         generate_index_tags,
+-        strip_empty_pages
++        strip_empty_pages,
+     )
++
+     latex_body = prune_index_tags(latex_body)
+     # E2: Remove dangerous LaTeX shell-escape commands
+     latex_body = sanitize_latex_commands(latex_body)
+@@ -602,18 +735,18 @@ def main(
+     latex_body = strip_empty_tables(latex_body)
+     # Fault #8: Strip syllabus restarts from chapter 3+
+     latex_body = strip_syllabus_restarts(latex_body)
+-    
++
+     # ÔöÇÔöÇ NEW: Strip empty pages & Generate Index ÔöÇÔöÇ
+     latex_body = strip_empty_pages(latex_body)
+     latex_body = generate_index_tags(latex_body)
+-    
++
+     # ZERO-ERROR: Master sanitizer ÔÇö fix math mode, environments, Unicode, markdown leaks
+     latex_body = sanitize_for_zero_errors(latex_body)
+     print("   Ô£à All post-processors + zero-error sanitizer applied")
+ 
+     # Auto-balance braces to prevent Emergency Stops
+-    open_braces = latex_body.count('{') - latex_body.count(r'\{')
+-    close_braces = latex_body.count('}') - latex_body.count(r'\}')
++    open_braces = latex_body.count("{") - latex_body.count(r"\{")
++    close_braces = latex_body.count("}") - latex_body.count(r"\}")
+     net_braces = open_braces - close_braces
+     if net_braces > 0:
+         print(f"   ÔÜá´©Å Auto-balancing: inserting {net_braces} missing closing braces.")
+@@ -622,38 +755,89 @@ def main(
+     # Clean stray \n or \t incorrectly output by the LLM as text
+     def fix_n_command(match):
+         cmd = match.group(1)
+-        valid = ['nu', 'nabla', 'nearrow', 'neg', 'newline', 'newpage', 'ni', 'nocite', 'noindent', 'nolimits', 'nonumber', 'nopagebreak', 'normalfont', 'normalsize', 'not', 'notin']
+-        return '\\' + cmd if cmd in valid else '\n' + cmd[1:]
+-    
++        valid = [
++            "nu",
++            "nabla",
++            "nearrow",
++            "neg",
++            "newline",
++            "newpage",
++            "ni",
++            "nocite",
++            "noindent",
++            "nolimits",
++            "nonumber",
++            "nopagebreak",
++            "normalfont",
++            "normalsize",
++            "not",
++            "notin",
++        ]
++        return "\\" + cmd if cmd in valid else "\n" + cmd[1:]
++
+     def fix_t_command(match):
+         cmd = match.group(1)
+-        valid = ['tau', 'text', 'textbf', 'textit', 'texttt', 'theta', 'times', 'tilde', 'tan', 'top', 'triangle', 'to', 'today', 'tag', 'textwidth', 'textheight', 'tfrac', 'thickapprox', 'thicksim', 'textasciicircum', 'textasciitilde']
+-        return '\\' + cmd if cmd in valid else ' ' + cmd[1:]
+-
+-    latex_body = re.sub(r'\\(n[a-zA-Z]*)', fix_n_command, latex_body)
+-    latex_body = re.sub(r'\\(t[a-zA-Z]*)', fix_t_command, latex_body)
++        valid = [
++            "tau",
++            "text",
++            "textbf",
++            "textit",
++            "texttt",
++            "theta",
++            "times",
++            "tilde",
++            "tan",
++            "top",
++            "triangle",
++            "to",
++            "today",
++            "tag",
++            "textwidth",
++            "textheight",
++            "tfrac",
++            "thickapprox",
++            "thicksim",
++            "textasciicircum",
++            "textasciitilde",
++        ]
++        return "\\" + cmd if cmd in valid else " " + cmd[1:]
++
++    latex_body = re.sub(r"\\(n[a-zA-Z]*)", fix_n_command, latex_body)
++    latex_body = re.sub(r"\\(t[a-zA-Z]*)", fix_t_command, latex_body)
+ 
+     # Fix math commands illegally nested inside \text{} (e.g. \text{J/(kg\cdot K)})
+     def fix_math_in_text(match):
+         inner = match.group(1)
+-        math_symbols = ['cdot', 'times', 'Delta', 'Omega', 'Sigma', 'pi', 'mu', 'alpha', 'beta', 'gamma', 'theta']
++        math_symbols = [
++            "cdot",
++            "times",
++            "Delta",
++            "Omega",
++            "Sigma",
++            "pi",
++            "mu",
++            "alpha",
++            "beta",
++            "gamma",
++            "theta",
++        ]
+         for sym in math_symbols:
+             # Prevent double replacing if already wrapped
+-            inner = inner.replace('$\\' + sym + '$', '\\' + sym)
+-            inner = inner.replace('\\' + sym, '$\\' + sym + '$')
+-        return '\\text{' + inner + '}'
++            inner = inner.replace("$\\" + sym + "$", "\\" + sym)
++            inner = inner.replace("\\" + sym, "$\\" + sym + "$")
++        return "\\text{" + inner + "}"
++
++    latex_body = re.sub(r"\\text\{([^{}]+)\}", fix_math_in_text, latex_body)
+ 
+-    latex_body = re.sub(r'\\text\{([^{}]+)\}', fix_math_in_text, latex_body)
+-    
+     # Strip any LaTeX macros that got cut off right before an end block (e.g. \c \n \end{equation})
+-    latex_body = re.sub(r'\\[a-zA-Z]+\s*\n\s*\\end\{', '\n\\\\end{', latex_body)
++    latex_body = re.sub(r"\\[a-zA-Z]+\s*\n\s*\\end\{", "\n\\\\end{", latex_body)
+ 
+     full_latex = template_content.replace("$body$", latex_body)
+     full_latex = full_latex.replace("$title$", "BookEducate Book")
+     full_latex = full_latex.replace("$author$", "BookEducate Engine")
+     full_latex = full_latex.replace("$date$", "\\today")
+     # Clean any remaining $variable$ Pandoc tokens
+-    full_latex = re.sub(r'\$[a-zA-Z_-]+\$', '', full_latex)
++    full_latex = re.sub(r"\$[a-zA-Z_-]+\$", "", full_latex)
+ 
+     tex_out.write_text(full_latex, encoding="utf-8")
+     print(f"Ô£à LaTeX Generated: {tex_out}")
+@@ -665,25 +849,38 @@ def main(
+         # Draft mode for Passes 1+2 (skips image rendering: 20min ÔåÆ 3min each)
+         # Pass 3 is the REAL render with all images.
+         for pass_num in (1, 2, 3):
+-            label = {1: 'Building TOC (draft)', 2: 'Aligning Pages (draft)', 3: 'Finalizing & Rendering Images'}[pass_num]
++            label = {
++                1: "Building TOC (draft)",
++                2: "Aligning Pages (draft)",
++                3: "Finalizing & Rendering Images",
++            }[pass_num]
+             print(f"   Pass {pass_num}/3 ÔÇö {label}...")
+             draft_flag = ["-draftmode"] if pass_num < 3 else []
+             result = subprocess.run(
+-                ["xelatex", "-interaction=nonstopmode"] + draft_flag +
+-                ["-output-directory", str(OUTPUT_DIR), str(tex_out)],
+-                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=2400
++                ["xelatex", "-interaction=nonstopmode"]
++                + draft_flag
++                + ["-output-directory", str(OUTPUT_DIR), str(tex_out)],
++                capture_output=True,
++                text=True,
++                encoding="utf-8",
++                errors="replace",
++                timeout=2400,
+             )
+             if result.returncode != 0:
+-                print(f"   ÔÜá´©Å xelatex pass {pass_num} had warnings/errors (non-fatal, continuing...)")
++                print(
++                    f"   ÔÜá´©Å xelatex pass {pass_num} had warnings/errors (non-fatal, continuing...)"
++                )
+ 
+         if output_pdf.exists() and output_pdf.stat().st_size > 0:
+             size_mb = output_pdf.stat().st_size / (1024 * 1024)
+             print(f"\nÔ£à PDF Compiled: {output_pdf} ({size_mb:.2f} MB)")
+         else:
+             print("\nÔØî PDF file was not created. Check BookEducate.log for details.")
+-            log_file = tex_out.with_suffix('.log')
++            log_file = tex_out.with_suffix(".log")
+             if log_file.exists():
+-                log_lines = log_file.read_text(encoding="utf-8", errors="ignore").splitlines()
++                log_lines = log_file.read_text(
++                    encoding="utf-8", errors="ignore"
++                ).splitlines()
+                 print("   Last 20 lines of log:")
+                 for line in log_lines[-20:]:
+                     print(f"   | {line}")
+@@ -718,16 +915,20 @@ def main(
+ # CLI ENTRY POINT
+ # ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+ if __name__ == "__main__":
+-    parser = argparse.ArgumentParser(description="BookEducate 5.0 Pipeline")
+-    parser.add_argument("pdf_input", help="Path to input PDF", nargs='?')
++    parser = argparse.ArgumentParser(description="BookUdecate V1.0 Pipeline")
++    parser.add_argument("pdf_input", help="Path to input PDF", nargs="?")
+     parser.add_argument("--style", help="Path to Style Reference PDF", default=None)
+     parser.add_argument(
+-        "--resume", action="store_true",
+-        help="Resume from the last completed phase checkpoint"
++        "--resume",
++        action="store_true",
++        help="Resume from the last completed phase checkpoint",
+     )
+     parser.add_argument(
+-        "--phase", type=int, choices=[1, 2, 3, 4], default=None,
+-        help="Jump directly to a specific phase (e.g., --phase 4)"
++        "--phase",
++        type=int,
++        choices=[1, 2, 3, 4],
++        default=None,
++        help="Jump directly to a specific phase (e.g., --phase 4)",
+     )
+ 
+     args = parser.parse_args()

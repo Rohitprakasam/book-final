@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 222 44% 8%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 222 44% 8%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 187 80% 52%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 20% 82%;
+
+    --muted: 222 30% 12%;
+    --muted-foreground: 215 15% 50%;
+
+    --accent: 187 80% 52%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 47% 6%;
+
+    --success: 152 60% 48%;
+    --success-foreground: 222 47% 6%;
+
+    --border: 222 30% 16%;
+    --input: 222 30% 14%;
+    --ring: 187 80% 52%;
+
+    --radius: 0.75rem;
+
+    --glow-primary: 0 0 20px hsl(187 80% 52% / 0.15);
+    --glow-primary-strong: 0 0 40px hsl(187 80% 52% / 0.25);
+
+    --font-sans: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --sidebar-background: 222 44% 8%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 187 80% 52%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 30% 14%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 222 30% 16%;
+    --sidebar-ring: 187 80% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  .glow-primary-strong {
+    box-shadow: var(--glow-primary-strong);
+  }
+  .terminal-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .terminal-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .terminal-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+}
