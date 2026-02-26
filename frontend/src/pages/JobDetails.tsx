@@ -23,7 +23,7 @@ export default function JobDetails() {
     }
     
     // Fetch initial status
-    fetch(`http://localhost:3030/api/v1/jobs/${id}`)
+    fetch(`http://localhost:8000/api/v1/jobs/${id}`)
       .then(res => {
         if (!res.ok) throw new Error("Not found");
         return res.json();
