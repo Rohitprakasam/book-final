@@ -254,6 +254,7 @@ async def analyst_node(state: BookState) -> dict:
                         },
                     ],
                     api_key=api_key if model.startswith("gemini/") else None,
+                    api_base=os.getenv("OLLAMA_API_BASE") if provider == "ollama" else None,
                 )
                 break
             except litellm.APIConnectionError:
@@ -470,6 +471,7 @@ async def drafter_node(state: BookState) -> dict:
                     },
                 ],
                 api_key=api_key if model.startswith("gemini/") else None,
+                api_base=os.getenv("OLLAMA_API_BASE") if os.getenv("LLM_PROVIDER") == "ollama" else None,
             )
         except litellm.APIConnectionError:
             print("[Drafter] 📡 Internet disconnected. Sleeping 30s...")
@@ -659,6 +661,7 @@ async def critic_node(state: BookState) -> dict:
                         },
                     ],
                     api_key=api_key if model.startswith("gemini/") else None,
+                    api_base=os.getenv("OLLAMA_API_BASE") if os.getenv("LLM_PROVIDER") == "ollama" else None,
                 )
                 break
             except litellm.APIConnectionError:

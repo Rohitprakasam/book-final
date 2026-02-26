@@ -9,7 +9,7 @@ Allows frontend clients to:
   - Download the final PDF
 
 Run with:
-    uvicorn server.api:app --host 0.0.0.0 --port 3030 --reload
+    uvicorn server.api:app --host 0.0.0.0 --port 8000 --reload
 
 Endpoints:
     POST   /api/v1/generate                  → Submit a new job
@@ -69,11 +69,7 @@ async def startup_event():
 # ──────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://localhost:3000",
-    ],
+    allow_origins=["*"],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
     allow_credentials=True,

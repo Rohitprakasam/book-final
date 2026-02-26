@@ -131,6 +131,7 @@ async def structurer_node(text_chunk: str) -> dict:
                 # Prevents all trailing-comma and missing-bracket crashes
                 response_format={"type": "json_object"},
                 api_key=api_key if model.startswith("gemini/") else None,
+                api_base=os.getenv("OLLAMA_API_BASE") if provider == "ollama" else None,
             )
 
             # Validate response

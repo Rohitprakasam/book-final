@@ -361,7 +361,11 @@ def resolve_art_tags(text: str, theme_config: dict = None, skip_images: bool = F
     from src.placeholder_generator import PlaceholderImageGenerator
     placeholder_gen = PlaceholderImageGenerator()
 
+    _count = [0]
+
     def generate_and_link(subject: str, caption: str) -> str:
+        _count[0] += 1
+        print(f"   Image {_count[0]}/{total_matches}: Resolving {subject[:30]}...")
         safe_subject = re.sub(r"[^a-zA-Z0-9]", "_", subject)[:30]
         filename = f"ai_{safe_subject}.png"
         save_path = AI_ASSETS_DIR / filename

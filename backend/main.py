@@ -363,7 +363,7 @@ def main(
                                 )
                         else:
                             print(
-                                f"   ✅ Chunk {i + 1} expanded → {len(expanded):,} chars"
+                                f"   ✅ Chunk {i + 1}/{total} expanded → {len(expanded):,} chars"
                             )
 
                     except KeyboardInterrupt:
@@ -713,6 +713,7 @@ def main(
     typst_parts = []
     for chapter in chapters:
         try:
+            print(f"   Rendering Chapter {chapters.index(chapter) + 1}/{len(chapters)}...")
             typst_parts.append(render_page_typst(chapter))
         except Exception as e:
             print(f"   ⚠️ Typst render error: {e} — skipping chapter")

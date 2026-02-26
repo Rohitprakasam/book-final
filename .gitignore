@@ -1,13 +1,14 @@
-# Environments
+# Environments and Secrets
 .env
 .venv
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
+*.env
+*.ssh/
+.ssh/
 
-# Python
+# Python caching and build
 __pycache__/
 *.py[cod]
 *$py.class
@@ -36,14 +37,17 @@ node_modules/
 npm-debug.log
 yarn-error.log
 yarn.lock
+package-lock.json
 
-# Vite build folders and caches
+# Vite/Build artifacts
 .vite/
 dist/
 build/
 out/
+.next/
+.cache/
 
-# Output and Data dirs
+# Pipeline Output (Never push generated books)
 data/raw_draft/*
 data/output/*
 backend/data/raw_draft/*
@@ -51,19 +55,7 @@ backend/data/output/*
 !backend/data/output/.gitkeep
 !backend/data/raw_draft/.gitkeep
 
-# IDE and OS files
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# Logs
-logs/
-*.log
-
-# TeX / Typst Auxiliary files
+# Typst/LaTeX/PDF Auxiliary
 *.aux
 *.fdb_latexmk
 *.fls
@@ -71,6 +63,22 @@ logs/
 *.toc
 *.synctex.gz
 *.pdf
+*.log
 backend/data/output/*.pdf
 backend/data/output/*.tex
 backend/data/output/*.typ
+
+# IDE and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Gemini/Agent Metadata (Do not push brain or internal logs)
+.gemini/
+.agents/
+brain/
+logs/
+*.log
